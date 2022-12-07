@@ -14,4 +14,5 @@ What doesn't it do?
 * Require a raspberry pi, PIOS, or 'pi' as a user name. 
     
 Included is an updated service file that will also work if you intend to install node yourself - this gets edited by the updater if necessary.
+
 No promises, no warranty. Made entirely for myself but shared after seeing plexamp users requesting more 'friendly' options. However, feel free to let me know if something doesn’t work or you have some suggestions. Just bare in mind that I’m no developer, just an enthusiast. 
