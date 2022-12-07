@@ -1,0 +1,15 @@
+[Unit]
+Description=Plexamp
+Wants=sound.target
+After=sound.target
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/plexamp
+ExecStart=/usr/bin/node %h/plexamp/js/index.js
+Restart=on-failure
+RestartSec=12
+
+[Install]
+WantedBy=default.target
