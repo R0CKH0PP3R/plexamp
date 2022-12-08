@@ -1,5 +1,5 @@
 # plexamp
-Headless plexamp is sweet and all but the updater kinda sucks... It uses sudo, requires the username 'pi', will hose your install if an update is not available and offers no help with setting up node (where required versions have also been known to change on minor updates). I wrote some of this while running Manjaro and needed an older version of node. I then wrote some more to get a newer version of node for PIOS. I have tested it on a raspberry pi, a laptop and a VM, each running different distros. I make no promises, but it should at least be a little more friendly than the supplied updater.
+Headless plexamp is sweet and all but the updater kinda sucks... It uses sudo, requires the username 'pi', will hose your install if dependencies are not available and offers no help with setting up node (where required versions have been known to change on minor updates). I wrote some of this while running Manjaro and needed an older version of node. I then wrote some more when needing a newer version of node for PIOS. I have tested it on a raspberry pi, a laptop and a VM, each running different distros. I make no promises, but it should at least be a little more friendly than the supplied updater.
 
 So what does it do?
 * Checks for basic dependencies.
