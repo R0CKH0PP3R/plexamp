@@ -64,7 +64,7 @@ else
         PLEXAMP_URL=$(curl -s "https://plexamp.plex.tv/headless/version.json" | jq -r '.updateUrl')
         # Download and install.
         echo "Downloading Plexamp ${LATEST_VSN}..."
-        wget -q "$PLEXAMP_URL" -O plexamp.tar.bz2
+        curl "$PLEXAMP_URL" -o plexamp.tar.bz2
         rm -rf plexamp.last && mv plexamp plexamp.last
         tar xfj plexamp.tar.bz2 && rm plexamp.tar.bz2
         chown -R "${USER}:${USER}" plexamp
