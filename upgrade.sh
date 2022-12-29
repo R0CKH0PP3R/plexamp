@@ -18,7 +18,7 @@ esac
 
 # Check node version & offer to install if requirement not met.
 NODE_VSN=$(node -v | cut -c 2-3)
-if [ $NODE_VSN != $NODE_RQD ]; then
+if [ "$NODE_VSN" != "$NODE_RQD" ]; then
     echo "node version ${NODE_RQD} required but '${NODE_VSN}' found."
     echo "Press 1 to install the required version or 2 to quit and do it yourself."
     read -n1 ANS1
