@@ -3,7 +3,7 @@
 cd $HOME
 
 # What Node version is required?
-NODE_RQD=16
+NODE_RQD=20
 
 # Check for missing requirements.
 MISSING=0
