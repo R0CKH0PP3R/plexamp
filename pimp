@@ -1,0 +1,181 @@
+#!/bin/bash
+
+show_help() {
+    printf "\
+╔═╗╦╔╦╗╔═╗ ══════════════════════════════════════════╗
+╠═╝║║║║╠═╝  Plexamp Installation Management Program  ║
+╩  ╩╩ ╩╩ ════════════════════════════════════════════╝
+
+Usage: pimp [-h] [-d <path/to/dir>] [-n <node version>]
+
+Optional arguments:
+   -h   show this help message and exit
+   -d   the directory where Plexamp should reside
+   -n   the major version of Node.js required. i.e. 20
+"
+}
+
+cd $HOME || exit 1
+export NVM_DIR="${HOME}/.nvm"
+endpoint="https://plexamp.plex.tv/headless/version.json"
+response=$(curl -s $endpoint)
+latest=$(echo "$response" | jq -r '.latestVersion')
+service="${HOME}/.config/systemd/user/plexamp.service"
+declare -a node
+declare -a log
+modified=0
+
+setup_node() {
+    # Install the node version manager if not already available.
+    # Then proceed to install & load the required version of nodejs.
+    if [ ! -d "$NVM_DIR" ]; then
+        mkdir "$NVM_DIR"
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
+        [ -s "${NVM_DIR}/nvm.sh" ] && \. "${NVM_DIR}/nvm.sh"
+        log+=("Node version manager installed for ${USER} under ${NVM_DIR}.")
+    fi
+    nvm install $reqd_node && log+=("Node version $(nvm version) installed.")
+    modified=$((modified+2))
+}
+
+which_node() {
+    # If the user supplied a node version, it is already in the node array.
+    # We now check the node requirements of each included module & append them.
+    # Finally, all versions are compared and the highest is returned.
+    readarray -d '' modules < <(find "${1}/node_modules" -name package.json)
+    for module in "${modules[@]}"; do
+        node+=("$(jq -r '.devDependencies."@types\/node"' $module | cut -c 2-3)")
+    done
+    printf '%s\n' "${node[@]}" | sort -n | tail -1
+}
+
+download_latest() {
+    # Identify, download & extract the latest Plexamp release.
+    # Note this removes any prior install at the same path.
+    download=$(echo "$response" | jq -r '.updateUrl')
+    curl $download -o plexamp.tar.bz2
+    rm -rf "${dir}/plexamp"
+    tar xfj plexamp.tar.bz2 -C "${dir}"
+    rm plexamp.tar.bz2
+    chown -R "${USER}:${USER}" "${dir}/plexamp"
+    echo $latest > "${dir}/plexamp/version"
+    log+=("Plexamp v${latest} installed under ${dir}.")
+    modified=$((modified+1))
+}
+
+check_version() {
+    # Check what version (if any) is already installed.
+    # If we can't derive a current version, assume update required.
+    # Plexamp versions may vary in digit length, i.e. 4.1 - 4.11.1
+    # Split on period and compare from most to least significant number.
+    read -r current < "${dir}/plexamp/version"
+    if [ -z $current ]; then download_latest
+    else
+        # Create arrays from parameter expansion.
+        l=(${latest//./ })
+        c=(${current//./ })
+        for i in "${!l[@]}"; do
+            if [[ ${l[i]} -gt ${c[i]} ]]; then
+                download_latest; break
+            fi
+        done
+        log+=("Plexamp is at the latest version ($current).")
+    fi
+}
+
+configure_service() {
+# Heredoc creates & configures plexamp service for current user.
+mkdir -p "$(dirname ${service})"
+cat << EOF > "${service}"
+[Unit]
+Description=Plexamp
+Wants=sound.target
+After=sound.target
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+WorkingDirectory=${dir}/plexamp
+ExecStart=${NVM_DIR}/versions/node/$(nvm version)/bin/node ${dir}/plexamp/js/index.js
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+EOF
+log+=("Plexamp service created for user ${USER}.")
+}
+
+quit() {
+    # Provide user output on what's happened & whether the service is running.
+    printf '%s\n' "${log[@]}"
+    if [ -s "${service}" ]; then
+        printf '%b\n' "Plexamp may be evoked manually with the following command:" \
+        "\e[33m$(cat ${service} | grep ExecStart | cut -d= -f2) \e[0m" \
+        "(This may be useful if you need to set up your claim code, i.e. on first use)." \
+        "Once claimed, access plexamp at \e[34mhttp://$(hostname).local:32500\e[0m"
+        systemctl --user is-active --quiet plexamp
+        if [ $? -eq 0 ]; then printf "Happy listening! \U1F60A\U1F3B5\n"
+        else printf "Service failed...\U1F622 Check with 'systemctl --user status plexamp'\n"; fi
+    fi
+    exit 0
+}
+
+# Parse any given arguments.
+opts=$(getopt -o 'hd:n:' -- "$@")
+eval set -- "$opts"
+while true; do
+    case $1 in
+        -h) show_help && exit ;;
+        -d) shift; dir=$(realpath "$1") ;;
+        -n) shift; node+=("$1") ;;
+        --) shift; break ;;
+    esac
+    shift
+done
+
+# Check for missing requirements needed to run this script.
+missing=0
+[ ! -f /usr/bin/curl ] && missing=$((missing+1))
+[ ! -f /usr/bin/jq ] && missing=$((missing+2))
+case $missing in
+    1) echo "Please install curl before continuing." && exit 1 ;;
+    2) echo "Please install jq before continuing." && exit 1 ;;
+    3) echo "Please install curl and jq before continuing." && exit 1 ;;
+esac
+
+# Set & make default installation directory
+[ -z "$dir" ] && dir=$HOME
+mkdir -p "$dir" || exit 1
+
+# Check current version if exist, or go straight to download
+[ -d "${dir}/plexamp" ] && check_version || download_latest
+
+# Set-up nodejs
+reqd_node=$(which_node ${dir}/plexamp)
+[ -s "${NVM_DIR}/nvm.sh" ] && \. "${NVM_DIR}/nvm.sh"
+inst_node=$(nvm version | cut -c 2-3)
+[[ $reqd_node -ne $inst_node ]] && setup_node || log+=("Node requirements met.")
+
+# Configure a systemd service file after updating
+[[ $modified -gt 0 ]] && configure_service || log+=("Nothing changed.")
+
+case $modified in
+    0)  # Nothing changed
+        quit
+        ;;
+    1)  # Plexamp updated
+        systemctl --user restart plexamp
+        log+=("Plexamp service restarted.")
+        ;;
+    2)  # Node updated
+        systemctl --user daemon-reload && systemctl --user restart plexamp
+        log+=("Units reloaded & Plexamp service restarted.")
+        ;;
+    3)  # Both Plexamp & Node updated
+        systemctl --user daemon-reload && systemctl --user enable --now plexamp.service
+        log+=("Units reloaded - Plexamp service enabled & started.")
+        ;;
+esac
+
+quit
