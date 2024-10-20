@@ -37,4 +37,4 @@ Optional arguments:
 ```
 
 ## Note
-Relying on the default best-guess Node setup is likely to fail at some point. In such cases, you'll have to look at the release announcements and specify the required Node version as an argument with '-n <version>'. I believe that the best solution for this would be for Plex developers to extend their version endpoint to include the Node version but that is out of my control.
+Relying on the default best-guess Node setup is likely to fail at some point. In such cases, you'll have to look at the release announcements and specify the required Node version as an argument with ```-n <version>```. I believe that the best solution for this would be for Plex developers to extend their version endpoint to include the Node version but that is out of my control.
