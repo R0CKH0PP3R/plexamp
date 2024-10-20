@@ -36,5 +36,7 @@ Optional arguments:
    -n   the major version of Node.js required. i.e. 20
 ```
 
-## Note
-Relying on the default best-guess Node setup is likely to fail at some point. In such cases, you'll have to look at the release announcements and specify the required Node version as an argument with ```-n <version>```. I believe that the best solution for this would be for Plex developers to extend their version endpoint to include the Node version but that is out of my control.
+## Notes
+* Relying on the default best-guess Node setup is likely to fail at some point. In such cases, you'll have to look at the release announcements and specify the required Node version as an argument with ```-n <version>```. I believe that the best solution for this would be for Plex developers to extend their version endpoint to include the Node version but that is out of my control.
+
+* The systemd user instance is started after the first login of a user and killed after the last session of the user is closed. Sometimes it may be useful to start it right after boot, and keep the systemd user instance running after the last session closes, for instance to have some user process running without any open session. Lingering is used to that effect. Use the following command to enable lingering for your own user, if polkit is installed: ```$ loginctl enable-linger``` ([ArchWiki](https://wiki.archlinux.org/title/Systemd/User#Automatic_start-up_of_systemd_user_instances)).
