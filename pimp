@@ -97,6 +97,9 @@ After=network-online.target
 [Service]
 WorkingDirectory=${dir}/plexamp
 ExecStart=${NVM_DIR}/versions/node/$(nvm version)/bin/node ${dir}/plexamp/js/index.js
+ExecStartPost=sleep 5
+ExecStartPost=/usr/bin/curl localhost:32500/player/playback/play
+ExecStartPost=/usr/bin/curl localhost:32500/player/playback/stop
 Restart=on-failure
 RestartSec=10
 
