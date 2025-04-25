@@ -1,0 +1,43 @@
+#!/bin/bash                                                                
+                                                                           
+# Script to interpret media keybinds in the absence of X11 & MPRIS. 
+# For example, when using a Fiio KB1K with a Raspberry Pi streamer.
+# Use actkbd to detect keys, configure it to execute this script           
+# & pass the keycode as an argument. Example /etc/actkbd.conf:             
+                                                                           
+#       163:key:exec:/path/to/script 163                                   
+#       164:key:exec:/path/to/script 164                                   
+#       165:key:exec:/path/to/script 165                                   
+#       113:key:exec:amixer -q -D hw:BossDAC sset Digital toggle           
+#       114:key:exec:amixer -q -D hw:BossDAC sset Digital 2-               
+#       115:key:exec:amixer -q -D hw:BossDAC sset Digital 2+               
+                                                                           
+# Detect if Plexamp has the sound device open & interact with it if so.    
+if [ "$(lsof /dev/snd/* | grep node)" ]; then                              
+    case $1 in                                                             
+        163) curl localhost:32500/player/playback/skipNext ;;              
+        164) curl localhost:32500/player/playback/playPause ;;             
+        165) curl localhost:32500/player/playback/skipPrevious ;;          
+    esac                                                                   
+                                                                           
+# Determine if we're playing anything via bluetooth & setup a toggle.      
+elif [ "$(bluetoothctl player.list)" ]; then                               
+    status=$(bluetoothctl player.show | grep Status: | cut -f2 -d' ')      
+    [[ "$status" == "playing" ]] && toggle="pause" || toggle="play"        
+    case $1 in                                                             
+        163) bluetoothctl player.next ;;                                   
+        164) bluetoothctl player.${toggle} ;;                              
+        165) bluetoothctl player.previous ;;                               
+    esac                                                                   
+                                                                           
+# Default to MPD control.                                                  
+else                                                                       
+    case $1 in                                                             
+        163) mpc next ;;                                                   
+        164) mpc toggle ;;                                                 
+        165) mpc prev ;;                                                   
+    esac                                                                   
+fi                                                                         
+                                                                           
+exit                                                                       
+                                                                           
